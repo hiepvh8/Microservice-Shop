@@ -1,0 +1,5 @@
+Secrets:
+kubectl create secret docker-registry harbor-registry-secret `
+  --docker-server=harbor.io.vn `
+  --docker-username=hiepvh8 `
+  --docker-password=Zmxncbv2002
