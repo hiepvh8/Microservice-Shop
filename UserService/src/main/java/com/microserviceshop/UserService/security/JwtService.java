@@ -1,5 +1,6 @@
 package com.microserviceshop.UserService.security;
 
+import com.microserviceshop.UserService.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -7,12 +8,17 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import com.microserviceshop.UserService.entity.Role;
+import com.microserviceshop.UserService.entity.Permission;
+
 
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class JwtService {
@@ -29,8 +35,37 @@ public class JwtService {
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
+//    public String generateToken(UserDetails userDetails){
+//        return generateToken(new HashMap<>(), userDetails);
+//    }
     public String generateToken(UserDetails userDetails){
-        return generateToken(new HashMap<>(), userDetails);
+        User user = (User) userDetails;
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", user.getId());
+        claims.put("userName", user.getName());
+        claims.put("userEmail", user.getEmail());
+
+        // Lấy danh sách các Role của User
+        Set<String> roles = user.getRoles().stream()
+                .map(Role::getName)
+                .collect(Collectors.toSet());
+        claims.put("roles", roles);
+
+        // Lấy danh sách các Permission của User
+        Set<String> permissions = user.getRoles().stream()
+                .flatMap(role -> role.getPermissions().stream())
+                .map(Permission::getName)
+                .collect(Collectors.toSet());
+        claims.put("permissions", permissions);
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(user.getUsername())
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000*60*24))
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                .compact();
     }
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
